@@ -1,0 +1,690 @@
+definitions:
+  dto.AddResultRequest:
+    description: Request for adding a swimmer's result to a competition
+    properties:
+      athlete_id:
+        type: integer
+      distance:
+        type: string
+      place:
+        type: integer
+      time_sec:
+        type: number
+    type: object
+  dto.AthleteAnalyticsRequest:
+    description: Request for retrieving athlete analytics with optional period filters
+    properties:
+      athlete_id:
+        type: integer
+      period_end:
+        type: string
+      period_start:
+        type: string
+    type: object
+  dto.AthleteAnalyticsResponse:
+    description: Detailed analytics data for an athlete
+    properties:
+      athlete_id:
+        type: integer
+      average_time:
+        type: number
+      best_time:
+        type: number
+      distance_breakdown:
+        items:
+          $ref: '#/definitions/dto.DistanceStats'
+        type: array
+      period_end:
+        type: string
+      period_start:
+        type: string
+      results:
+        items:
+          $ref: '#/definitions/dto.ResultResponse'
+        type: array
+      total_competitions:
+        type: integer
+      total_distance:
+        type: string
+      worst_time:
+        type: number
+    type: object
+  dto.AthleteResponse:
+    description: Response with athlete details
+    properties:
+      birth_date:
+        type: string
+      gender:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      status:
+        type: string
+    type: object
+  dto.CompetitionResponse:
+    description: Response with competition details
+    properties:
+      date:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      organizer:
+        type: integer
+      results:
+        items:
+          $ref: '#/definitions/dto.ResultResponse'
+        type: array
+    type: object
+  dto.CreateAthleteRequest:
+    description: Request for creating a new athlete
+    properties:
+      birth_date:
+        type: string
+      gender:
+        type: string
+      name:
+        type: string
+      status:
+        type: string
+    type: object
+  dto.CreateCompetitionRequest:
+    description: Request for creating a new swimming competition
+    properties:
+      date:
+        type: string
+      name:
+        type: string
+      organizer_id:
+        type: integer
+    type: object
+  dto.CreateOrganizerRequest:
+    description: Request for creating a new competition organizer
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+    type: object
+  dto.DistanceStats:
+    description: Statistical data for swimming results by distance
+    properties:
+      average_time:
+        type: number
+      best_time:
+        type: number
+      count:
+        type: integer
+      distance:
+        type: string
+      worst_time:
+        type: number
+    type: object
+  dto.LoginRequest:
+    description: Request for user authentication
+    properties:
+      login:
+        maxLength: 50
+        minLength: 3
+        type: string
+      password:
+        minLength: 6
+        type: string
+    required:
+    - login
+    - password
+    type: object
+  dto.OrganizerResponse:
+    description: Response with organizer details
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  dto.RegisterSpecialRequest:
+    description: Request for registering a user with special role (admin, organizer,
+      etc.)
+    properties:
+      login:
+        maxLength: 50
+        minLength: 3
+        type: string
+      password:
+        minLength: 6
+        type: string
+      role:
+        enum:
+        - user
+        - admin
+        type: string
+    required:
+    - login
+    - password
+    - role
+    type: object
+  dto.RegisterUserRequest:
+    description: Request for registering a new regular user
+    properties:
+      login:
+        maxLength: 50
+        minLength: 3
+        type: string
+      password:
+        minLength: 6
+        type: string
+    required:
+    - login
+    - password
+    type: object
+  dto.ResultResponse:
+    description: Response with swimmer's result details
+    properties:
+      athlete_id:
+        type: integer
+      distance:
+        type: string
+      place:
+        type: integer
+      time_sec:
+        type: number
+    type: object
+  dto.UpdateAthleteStatusRequest:
+    description: Request for updating athlete status
+    properties:
+      status:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /analytics/get/{id}:
+    post:
+      consumes:
+      - application/json
+      description: Get detailed analytics for a specific athlete including performance
+        metrics and trends
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Analytics period filters
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AthleteAnalyticsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successful response with athlete analytics
+          schema:
+            $ref: '#/definitions/dto.AthleteAnalyticsResponse'
+        "400":
+          description: Invalid athlete ID or request format
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Athlete not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get athlete analytics
+      tags:
+      - analytics
+  /athletes/create:
+    post:
+      consumes:
+      - application/json
+      description: Create a new athlete with the provided information
+      parameters:
+      - description: Athlete information
+        in: body
+        name: athlete
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateAthleteRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Successfully created athlete
+          schema:
+            $ref: '#/definitions/dto.AthleteResponse'
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new athlete
+      tags:
+      - athletes
+  /athletes/get/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve athlete information by athlete ID
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully retrieved athlete
+          schema:
+            $ref: '#/definitions/dto.AthleteResponse'
+        "400":
+          description: Invalid athlete ID format
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Athlete not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get athlete by ID
+      tags:
+      - athletes
+  /athletes/update/{id}:
+    patch:
+      consumes:
+      - application/json
+      description: Update the status of an existing athlete
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: New status information
+        in: body
+        name: status
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateAthleteStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully updated athlete status
+          schema:
+            $ref: '#/definitions/dto.AthleteResponse'
+        "400":
+          description: Invalid request parameters
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Athlete not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update athlete status
+      tags:
+      - athletes
+  /competitions/add/{id}:
+    post:
+      consumes:
+      - application/json
+      description: Add a new result (swimmer's time) to an existing competition
+      parameters:
+      - description: Competition ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Result information
+        in: body
+        name: result
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AddResultRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Successfully added result
+          schema:
+            $ref: '#/definitions/dto.ResultResponse'
+        "400":
+          description: Invalid request parameters
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Competition not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Add result to competition
+      tags:
+      - results
+  /competitions/create:
+    post:
+      consumes:
+      - application/json
+      description: Create a new swimming competition with the provided information
+      parameters:
+      - description: Competition information
+        in: body
+        name: competition
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateCompetitionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Successfully created competition
+          schema:
+            $ref: '#/definitions/dto.CompetitionResponse'
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new competition
+      tags:
+      - competitions
+  /competitions/get-all:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a list of all competitions
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully retrieved competitions list
+          schema:
+            items:
+              $ref: '#/definitions/dto.CompetitionResponse'
+            type: array
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get all competitions
+      tags:
+      - competitions
+  /competitions/get/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve competition information by competition ID
+      parameters:
+      - description: Competition ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully retrieved competition
+          schema:
+            $ref: '#/definitions/dto.CompetitionResponse'
+        "400":
+          description: Invalid competition ID format
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Competition not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get competition by ID
+      tags:
+      - competitions
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user and receive JWT token
+      parameters:
+      - description: User login credentials
+        in: body
+        name: credentials
+        required: true
+        schema:
+          $ref: '#/definitions/dto.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Login successful, returns JWT token
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid JSON or request format
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Invalid credentials
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: User login
+      tags:
+      - auth
+  /organizers/create:
+    post:
+      consumes:
+      - application/json
+      description: Create a new competition organizer with the provided information
+      parameters:
+      - description: Organizer information
+        in: body
+        name: organizer
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateOrganizerRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Successfully created organizer
+          schema:
+            $ref: '#/definitions/dto.OrganizerResponse'
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new organizer
+      tags:
+      - organizers
+  /organizers/get/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve organizer information by organizer ID
+      parameters:
+      - description: Organizer ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully retrieved organizer
+          schema:
+            $ref: '#/definitions/dto.OrganizerResponse'
+        "400":
+          description: Invalid organizer ID format
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Organizer not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get organizer by ID
+      tags:
+      - organizers
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user with login and password
+      parameters:
+      - description: User registration data
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RegisterUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User successfully registered
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid JSON or request format
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: User already exists
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Register a new user
+      tags:
+      - auth
+  /register-special:
+    post:
+      consumes:
+      - application/json
+      description: Register a user with special role and permissions
+      parameters:
+      - description: Special user registration data
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RegisterSpecialRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Special user successfully registered
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid JSON or request format
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: User already exists
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Register a special user (e.g., admin, organizer)
+      tags:
+      - auth
+swagger: "2.0"

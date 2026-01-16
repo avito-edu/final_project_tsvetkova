@@ -1,0 +1,2 @@
+{"duration":70,"fields.time":"2026-01-15 17:31:36","ip":"[::1]:59596","level":"info","method":"POST","msg":"request","path":"/login","query":"","status":200,"time":"2026-01-15 17:31:36"}
+{"duration":50,"fields.time":"2026-01-15 17:32:15","ip":"[::1]:59596","level":"info","method":"POST","msg":"request","path":"/login","query":"","status":401,"time":"2026-01-15 17:32:15"}
