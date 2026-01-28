@@ -1,11 +1,10 @@
 package handler
 
 import (
-	"net/http"
 	"swim_service/internal/middleware"
 
 	"github.com/casbin/casbin"
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 )
 
 func NewRouter(
@@ -15,34 +14,48 @@ func NewRouter(
 	analyticsHandler *AnalyticsHandler,
 	userHandler *UserHandler,
 	enforcer *casbin.Enforcer,
-) http.Handler {
-	mux := mux.NewRouter()
+) *gin.Engine {
+	router := gin.Default()
 
-	mux.HandleFunc("/athletes/create", athleteHandler.CreateAthlete).Methods("POST")
-	mux.HandleFunc("/athletes/get/{id}", athleteHandler.GetAthlete).Methods("GET")
-	mux.HandleFunc("/athletes/update/{id}", athleteHandler.UpdateStatus).Methods("PATCH")
+	router.Use(middleware.LoggerMiddleware())
+	router.Use(middleware.AuthMiddleware(enforcer))
 
-	mux.HandleFunc("/competitions/create", competitionHandler.CreateCompetition).Methods("POST")
-	mux.HandleFunc("/competitions/get/{id}", competitionHandler.GetCompetition).Methods("GET")
-	mux.HandleFunc("/competitions/get-all", competitionHandler.GetAllCompetitions).Methods("GET")
-	mux.HandleFunc("/competitions/add/{id}", competitionHandler.AddResult).Methods("POST")
+	athleteGroup := router.Group("/athletes")
+	{
+		athleteGroup.POST("/create", athleteHandler.CreateAthlete)
+		athleteGroup.GET("/get/:id", athleteHandler.GetAthlete)
+		athleteGroup.PATCH("/update/:id", athleteHandler.UpdateStatus)
+	}
 
-	mux.HandleFunc("/organizers/create", organizerHandler.CreateOrganizer).Methods("POST")
-	mux.HandleFunc("/organizers/get/{id}", organizerHandler.GetOrganizer).Methods("GET")
+	competitionGroup := router.Group("/competitions")
+	{
+		competitionGroup.POST("/create", competitionHandler.CreateCompetition)
+		competitionGroup.GET("/get/:id", competitionHandler.GetCompetition)
+		competitionGroup.GET("/get-all", competitionHandler.GetAllCompetitions)
+		competitionGroup.POST("/add/:id", competitionHandler.AddResult)
+	}
 
-	mux.HandleFunc("/register", userHandler.RegisterUser).Methods("POST")
-	mux.HandleFunc("/register-special", userHandler.RegisterSpecial).Methods("POST")
-	mux.HandleFunc("/login", userHandler.Login).Methods("POST")
+	organizerGroup := router.Group("/organizers")
+	{
+		organizerGroup.POST("/create", organizerHandler.CreateOrganizer)
+		organizerGroup.GET("/get/:id", organizerHandler.GetOrganizer)
+	}
 
-	mux.HandleFunc("/analytics/get/{id}", analyticsHandler.GetAthleteAnalytics).Methods("POST")
+	userGroup := router.Group("")
+	{
+		userGroup.POST("/register", userHandler.RegisterUser)
+		userGroup.POST("/register-special", userHandler.RegisterSpecial)
+		userGroup.POST("/login", userHandler.Login)
+	}
 
-	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"status": "ok"}`))
-	}).Methods("GET")
+	analyticsGroup := router.Group("/analytics")
+	{
+		analyticsGroup.POST("/get/:id", analyticsHandler.GetAthleteAnalytics)
+	}
 
-	router := middleware.LoggerMiddleware(mux)
-	router = middleware.AuthMiddleware(enforcer, router)
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "ok"})
+	})
 
 	return router
 }

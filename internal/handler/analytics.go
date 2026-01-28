@@ -1,14 +1,13 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 	"swim_service/internal/dto"
 	"swim_service/internal/service"
 	"time"
 
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 )
 
 type AnalyticsHandler struct {
@@ -30,23 +29,22 @@ func NewAnalyticsHandler(analyticsService *service.AnalyticsService) *AnalyticsH
 // @Param id path integer true "Athlete ID"
 // @Param request body dto.AthleteAnalyticsRequest true "Analytics period filters"
 // @Success 200 {object} dto.AthleteAnalyticsResponse "Successful response with athlete analytics"
-// @Failure 400 {object} map[string]string "Invalid athlete ID or request format"
-// @Failure 404 {object} map[string]string "Athlete not found"
-// @Failure 500 {object} map[string]string "Internal server error"
+// @Failure 400 {object} dto.ErrorResponse "Invalid athlete ID or request format"
+// @Failure 404 {object} dto.ErrorResponse "Athlete not found"
+// @Failure 500 {object} dto.ErrorResponse "Internal server error"
 // @Router /analytics/get/{id} [post]
-func (h *AnalyticsHandler) GetAthleteAnalytics(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	athleteIDStr := vars["id"]
-
+func (h *AnalyticsHandler) GetAthleteAnalytics(c *gin.Context) {
+	athleteIDStr := c.Param("id")
+	
 	athleteID, err := strconv.Atoi(athleteIDStr)
 	if err != nil {
-		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid athlete ID format"})
 		return
 	}
 
 	var req dto.AthleteAnalyticsRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body: " + err.Error()})
 		return
 	}
 
@@ -59,15 +57,11 @@ func (h *AnalyticsHandler) GetAthleteAnalytics(w http.ResponseWriter, r *http.Re
 		req.PeriodEnd = time.Now()
 	}
 
-	analytics, err := h.analyticsService.GetAthleteAnalytics(r.Context(), req)
+	analytics, err := h.analyticsService.GetAthleteAnalytics(c.Request.Context(), req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-
-	if err := json.NewEncoder(w).Encode(analytics); err != nil {
-		http.Error(w, "Failed to make response", http.StatusInternalServerError)
-	}
+	c.JSON(http.StatusOK, analytics)
 }

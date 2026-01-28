@@ -2,10 +2,11 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"swim_service/internal/domain"
 	"swim_service/internal/dto"
+
+	"github.com/gin-gonic/gin"
 )
 
 type UserService interface {
@@ -35,21 +36,20 @@ func NewUserHandler(us UserService) *UserHandler {
 // @Failure 400 {object} map[string]string "Invalid JSON or request format"
 // @Failure 409 {object} map[string]string "User already exists"
 // @Router /register [post]
-func (h *UserHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) RegisterUser(c *gin.Context) {
 	var req dto.RegisterUserRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid JSON", http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid JSON"})
 		return
 	}
 
-	user, err := h.userService.RegisterUser(r.Context(), req)
+	user, err := h.userService.RegisterUser(c.Request.Context(), req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusConflict)
+		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{
+	c.JSON(http.StatusOK, gin.H{
 		"id":    user.ID,
 		"login": user.Login,
 		"role":  user.Role,
@@ -67,21 +67,20 @@ func (h *UserHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} map[string]string "Invalid JSON or request format"
 // @Failure 409 {object} map[string]string "User already exists"
 // @Router /register-special [post]
-func (h *UserHandler) RegisterSpecial(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) RegisterSpecial(c *gin.Context) {
 	var req dto.RegisterSpecialRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid JSON", http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid JSON"})
 		return
 	}
 
-	user, err := h.userService.RegisterSpecial(r.Context(), req)
+	user, err := h.userService.RegisterSpecial(c.Request.Context(), req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusConflict)
+		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{
+	c.JSON(http.StatusOK, gin.H{
 		"id":    user.ID,
 		"login": user.Login,
 		"role":  user.Role,
@@ -99,21 +98,18 @@ func (h *UserHandler) RegisterSpecial(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} map[string]string "Invalid JSON or request format"
 // @Failure 401 {object} map[string]string "Invalid credentials"
 // @Router /login [post]
-func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) Login(c *gin.Context) {
 	var req dto.LoginRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid JSON", http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid JSON"})
 		return
 	}
 
-	token, err := h.userService.Login(r.Context(), req)
+	token, err := h.userService.Login(c.Request.Context(), req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
-		"token": token,
-	})
+	c.JSON(http.StatusOK, gin.H{"token": token})
 }

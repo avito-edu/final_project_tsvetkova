@@ -1,12 +1,11 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 	"swim_service/internal/dto"
 
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 )
 
 type OrganizerService interface {
@@ -35,25 +34,20 @@ func NewOrganizerHandler(organizerService OrganizerService) *OrganizerHandler {
 // @Failure 400 {object} map[string]string "Invalid request body"
 // @Failure 500 {object} map[string]string "Internal server error"
 // @Router /organizers/create [post]
-func (h *OrganizerHandler) CreateOrganizer(w http.ResponseWriter, r *http.Request) {
+func (h *OrganizerHandler) CreateOrganizer(c *gin.Context) {
 	var req dto.CreateOrganizerRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
 
 	resp, err := h.organizerService.CreateOrganizer(req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-
-	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		http.Error(w, "Failed to make response", http.StatusInternalServerError)
-	}
+	c.JSON(http.StatusCreated, resp)
 }
 
 // GetOrganizer godoc
@@ -68,30 +62,25 @@ func (h *OrganizerHandler) CreateOrganizer(w http.ResponseWriter, r *http.Reques
 // @Failure 404 {object} map[string]string "Organizer not found"
 // @Failure 500 {object} map[string]string "Internal server error"
 // @Router /organizers/get/{id} [get]
-func (h *OrganizerHandler) GetOrganizer(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	idStr := vars["id"]
+func (h *OrganizerHandler) GetOrganizer(c *gin.Context) {
+	idStr := c.Param("id")
 
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "Invalid organizer ID", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid organizer ID"})
 		return
 	}
 
 	resp, err := h.organizerService.GetOrganizer(id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	if resp == nil {
-		http.Error(w, "Organizer not found", http.StatusNotFound)
+		c.JSON(http.StatusNotFound, gin.H{"error": "Organizer not found"})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-
-	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		http.Error(w, "Failed to make response", http.StatusInternalServerError)
-	}
+	c.JSON(http.StatusOK, resp)
 }

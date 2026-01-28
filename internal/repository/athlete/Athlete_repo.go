@@ -8,19 +8,19 @@ import (
 	"github.com/Masterminds/squirrel"
 )
 
-type PostgresAthleteRepository struct {
+type AthleteRepository struct {
 	db   *sql.DB
 	psql squirrel.StatementBuilderType
 }
 
-func NewPostgresAthleteRepository(db *sql.DB) *PostgresAthleteRepository {
-	return &PostgresAthleteRepository{
+func NewAthleteRepository(db *sql.DB) *AthleteRepository {
+	return &AthleteRepository{
 		db:   db,
 		psql: squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar),
 	}
 }
 
-func (r *PostgresAthleteRepository) CreateAthlete(athlete *domain.Athlete) error {
+func (r *AthleteRepository) CreateAthlete(athlete *domain.Athlete) error {
 	query, args, err := r.psql.
 		Insert("athletes").
 		Columns("name", "birth_date", "status", "gender").
@@ -35,7 +35,7 @@ func (r *PostgresAthleteRepository) CreateAthlete(athlete *domain.Athlete) error
 	return err
 }
 
-func (r *PostgresAthleteRepository) GetByID(id int) (*domain.Athlete, error) {
+func (r *AthleteRepository) GetByID(id int) (*domain.Athlete, error) {
 	query, args, err := r.psql.
 		Select("user_id", "name", "birth_date", "status", "gender").
 		From("athletes").
@@ -61,7 +61,7 @@ func (r *PostgresAthleteRepository) GetByID(id int) (*domain.Athlete, error) {
 	return athlete, err
 }
 
-func (r *PostgresAthleteRepository) UpdateStatus(id int, newStatus string) error {
+func (r *AthleteRepository) UpdateStatus(id int, newStatus string) error {
 	query, args, err := r.psql.
 		Update("athletes").
 		Set("status", newStatus).

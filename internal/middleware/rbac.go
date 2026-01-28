@@ -1,12 +1,11 @@
 package middleware
 
 import (
-	"context"
-	"net/http"
 	"os"
 	"strings"
 
 	"github.com/casbin/casbin"
+	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -16,26 +15,30 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-func AuthMiddleware(enforcer *casbin.Enforcer, next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func AuthMiddleware(enforcer *casbin.Enforcer) gin.HandlerFunc {
+	return func(c *gin.Context) {
 		publicPaths := map[string]bool{
-			"/login":    true,
-			"/register": true,
+			"/login":          true,
+			"/register":       true,
+			"/register-special": true,
+			"/health":         true,
 		}
 
-		if publicPaths[r.URL.Path] {
-			next.ServeHTTP(w, r)
+		if publicPaths[c.Request.URL.Path] {
+			c.Next()
 			return
 		}
 
-		authHeader := r.Header.Get("Authorization")
+		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			http.Error(w, `{"error": "Authorization header required"}`, http.StatusUnauthorized)
+			c.JSON(401, gin.H{"error": "Authorization header required"})
+			c.Abort()
 			return
 		}
 
 		if !strings.HasPrefix(authHeader, "Bearer ") {
-			http.Error(w, `{"error": "Invalid authorization format"}`, http.StatusUnauthorized)
+			c.JSON(401, gin.H{"error": "Invalid authorization format"})
+			c.Abort()
 			return
 		}
 
@@ -50,33 +53,36 @@ func AuthMiddleware(enforcer *casbin.Enforcer, next http.Handler) http.Handler {
 		})
 
 		if err != nil {
-			http.Error(w, `{"error": "Invalid or expired token: `+err.Error()+`"}`, http.StatusUnauthorized)
+			c.JSON(401, gin.H{"error": "Invalid or expired token: " + err.Error()})
+			c.Abort()
 			return
 		}
 
 		if !token.Valid {
-			http.Error(w, `{"error": "Invalid token"}`, http.StatusUnauthorized)
+			c.JSON(401, gin.H{"error": "Invalid token"})
+			c.Abort()
 			return
 		}
 
-		path := r.URL.Path
-		method := r.Method
+		path := c.Request.URL.Path
+		method := c.Request.Method
 
 		allowed, err := enforcer.EnforceSafe(claims.Role, path, method)
 		if err != nil {
-			http.Error(w, `{"error": "Authorization error: `+err.Error()+`"}`, http.StatusInternalServerError)
+			c.JSON(500, gin.H{"error": "Authorization error: " + err.Error()})
+			c.Abort()
 			return
 		}
 
 		if !allowed {
-			http.Error(w, `{"error": "Access denied"}`, http.StatusForbidden)
+			c.JSON(403, gin.H{"error": "Access denied"})
+			c.Abort()
 			return
 		}
 
-		ctx := r.Context()
-		ctx = context.WithValue(ctx, "user_id", claims.UserID)
-		ctx = context.WithValue(ctx, "role", claims.Role)
+		c.Set("user_id", claims.UserID)
+		c.Set("role", claims.Role)
 
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
+		c.Next()
+	}
 }

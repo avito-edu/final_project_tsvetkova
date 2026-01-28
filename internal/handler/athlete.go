@@ -1,12 +1,11 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 	"swim_service/internal/dto"
 
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 )
 
 type AthleteService interface {
@@ -36,25 +35,20 @@ func NewAthleteHandler(athleteService AthleteService) *AthleteHandler {
 // @Failure 400 {object} map[string]string "Invalid request body"
 // @Failure 500 {object} map[string]string "Internal server error"
 // @Router /athletes/create [post]
-func (h *AthleteHandler) CreateAthlete(w http.ResponseWriter, r *http.Request) {
+func (h *AthleteHandler) CreateAthlete(c *gin.Context) {
 	var req dto.CreateAthleteRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
 
 	resp, err := h.athleteService.CreateAthlete(req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-
-	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		http.Error(w, "Failed to make response", http.StatusInternalServerError)
-	}
+	c.JSON(http.StatusCreated, resp)
 }
 
 // GetAthlete godoc
@@ -69,32 +63,27 @@ func (h *AthleteHandler) CreateAthlete(w http.ResponseWriter, r *http.Request) {
 // @Failure 404 {object} map[string]string "Athlete not found"
 // @Failure 500 {object} map[string]string "Internal server error"
 // @Router /athletes/get/{id} [get]
-func (h *AthleteHandler) GetAthlete(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	idStr := vars["id"]
-
+func (h *AthleteHandler) GetAthlete(c *gin.Context) {
+	idStr := c.Param("id")
+	
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid athlete ID"})
 		return
 	}
 
 	resp, err := h.athleteService.GetAthlete(id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	if resp == nil {
-		http.Error(w, "Athlete not found", http.StatusNotFound)
+		c.JSON(http.StatusNotFound, gin.H{"error": "Athlete not found"})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-
-	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		http.Error(w, "Failed to make response", http.StatusInternalServerError)
-	}
+	c.JSON(http.StatusOK, resp)
 }
 
 // UpdateStatus godoc
@@ -110,31 +99,26 @@ func (h *AthleteHandler) GetAthlete(w http.ResponseWriter, r *http.Request) {
 // @Failure 404 {object} map[string]string "Athlete not found"
 // @Failure 500 {object} map[string]string "Internal server error"
 // @Router /athletes/update/{id} [patch]
-func (h *AthleteHandler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	idStr := vars["id"]
-
+func (h *AthleteHandler) UpdateStatus(c *gin.Context) {
+	idStr := c.Param("id")
+	
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid athlete ID"})
 		return
 	}
 
 	var req dto.UpdateAthleteStatusRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
 
 	resp, err := h.athleteService.UpdateAthleteStatus(id, req.Status)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-
-	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		http.Error(w, "Failed to make response", http.StatusInternalServerError)
-	}
+	c.JSON(http.StatusOK, resp)
 }

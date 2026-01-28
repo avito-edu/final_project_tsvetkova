@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -22,6 +23,7 @@ import (
 
 	"github.com/casbin/casbin"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/pressly/goose/v3"
 )
 
 func main() {
@@ -73,9 +75,9 @@ func main() {
 	if err := runMigrationsFromFile(db); err != nil {
 		log.Fatal("Failed to run migrations:", err)
 	}
-	athleteRepo := athlete.NewPostgresAthleteRepository(db)
-	organizerRepo := organizer.NewPostgresOrganizerRepository(db)
-	competitionRepo := competition.NewPostgresCompetitionRepository(db)
+	athleteRepo := athlete.NewAthleteRepository(db)
+	organizerRepo := organizer.NewOrganizerRepository(db)
+	competitionRepo := competition.NewCompetitionRepository(db)
 	userRepo := user.NewUserRepository(db)
 
 	tokenService := jwtutil.NewTokenService([]byte(jwtSecret))
@@ -129,17 +131,20 @@ func main() {
 }
 
 func runMigrationsFromFile(db *sql.DB) error {
-	sqlPath := filepath.Join(".", "migration.sql")
-	sqlBytes, err := os.ReadFile(sqlPath)
-	if err != nil {
-		sqlPath = filepath.Join("migration.sql")
-		sqlBytes, err = os.ReadFile(sqlPath)
-		if err != nil {
-			return err
+	migrationsDir := filepath.Join(".", "migrations")
+	
+	if _, err := os.Stat(migrationsDir); os.IsNotExist(err) {
+		migrationsDir = filepath.Join("..", "migrations")
+		if _, err := os.Stat(migrationsDir); os.IsNotExist(err) {
+			return fmt.Errorf("not found :(")
 		}
 	}
 
-	sqlString := string(sqlBytes)
-	_, err = db.Exec(sqlString)
-	return err
+	goose.SetBaseFS(nil)
+	
+	if err := goose.Up(db, migrationsDir); err != nil {
+		return fmt.Errorf("failed to run migrations: %w", err)
+	}
+
+	return nil
 }

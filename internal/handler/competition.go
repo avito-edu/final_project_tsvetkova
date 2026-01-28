@@ -1,12 +1,11 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 	"swim_service/internal/dto"
 
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 )
 
 type CompetitionService interface {
@@ -39,25 +38,20 @@ func NewCompetitionHandler(competitionService CompetitionService) *CompetitionHa
 // @Failure 400 {object} map[string]string "Invalid request body"
 // @Failure 500 {object} map[string]string "Internal server error"
 // @Router /competitions/create [post]
-func (h *CompetitionHandler) CreateCompetition(w http.ResponseWriter, r *http.Request) {
+func (h *CompetitionHandler) CreateCompetition(c *gin.Context) {
 	var req dto.CreateCompetitionRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
 
 	resp, err := h.competitionService.CreateCompetition(req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-
-	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		http.Error(w, "Failed to make response", http.StatusInternalServerError)
-	}
+	c.JSON(http.StatusCreated, resp)
 }
 
 // GetAllCompetitions godoc
@@ -69,18 +63,14 @@ func (h *CompetitionHandler) CreateCompetition(w http.ResponseWriter, r *http.Re
 // @Success 200 {array} dto.CompetitionResponse "Successfully retrieved competitions list"
 // @Failure 500 {object} map[string]string "Internal server error"
 // @Router /competitions/get-all [get]
-func (h *CompetitionHandler) GetAllCompetitions(w http.ResponseWriter, r *http.Request) {
+func (h *CompetitionHandler) GetAllCompetitions(c *gin.Context) {
 	resp, err := h.competitionService.GetAllCompetitions()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-
-	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		http.Error(w, "Failed to make response", http.StatusInternalServerError)
-	}
+	c.JSON(http.StatusOK, resp)
 }
 
 // GetCompetition godoc
@@ -95,32 +85,27 @@ func (h *CompetitionHandler) GetAllCompetitions(w http.ResponseWriter, r *http.R
 // @Failure 404 {object} map[string]string "Competition not found"
 // @Failure 500 {object} map[string]string "Internal server error"
 // @Router /competitions/get/{id} [get]
-func (h *CompetitionHandler) GetCompetition(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	idStr := vars["id"]
+func (h *CompetitionHandler) GetCompetition(c *gin.Context) {
+	idStr := c.Param("id")
 
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "Invalid competition ID", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid competition ID"})
 		return
 	}
 
 	resp, err := h.competitionService.GetCompetition(id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	if resp == nil {
-		http.Error(w, "Competition not found", http.StatusNotFound)
+		c.JSON(http.StatusNotFound, gin.H{"error": "Competition not found"})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-
-	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		http.Error(w, "Failed to make response", http.StatusInternalServerError)
-	}
+	c.JSON(http.StatusOK, resp)
 }
 
 // AddResult godoc
@@ -136,32 +121,26 @@ func (h *CompetitionHandler) GetCompetition(w http.ResponseWriter, r *http.Reque
 // @Failure 404 {object} map[string]string "Competition not found"
 // @Failure 500 {object} map[string]string "Internal server error"
 // @Router /competitions/add/{id} [post]
-func (h *CompetitionHandler) AddResult(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	idStr := vars["id"]
+func (h *CompetitionHandler) AddResult(c *gin.Context) {
+	idStr := c.Param("id")
 
 	compID, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "Invalid competition ID", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid competition ID"})
 		return
 	}
 
 	var req dto.AddResultRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
 
 	resp, err := h.competitionService.AddResult(compID, req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-
-	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		http.Error(w, "Failed to make response", http.StatusInternalServerError)
-	}
+	c.JSON(http.StatusCreated, resp)
 }

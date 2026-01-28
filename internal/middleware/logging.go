@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
 
@@ -28,29 +29,30 @@ func initLogrus() *logrus.Logger {
 	return logger
 }
 
-func LoggerMiddleware(next http.Handler) http.Handler {
+func LoggerMiddleware() gin.HandlerFunc {
 	logger := initLogrus()
 
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return func(c *gin.Context) {
 		start := time.Now()
+		path := c.Request.URL.Path
+		query := c.Request.URL.RawQuery
 
-		rw := &responseRecorder{
-			ResponseWriter: w,
-			status:         200,
-		}
+		c.Next()
 
-		next.ServeHTTP(rw, r)
+		end := time.Now()
+		latency := end.Sub(start)
 
 		logger.WithFields(logrus.Fields{
-			"time":     time.Now().Format("2006-01-02 15:04:05"),
-			"method":   r.Method,
-			"path":     r.URL.Path,
-			"query":    r.URL.RawQuery,
-			"status":   rw.status,
-			"duration": time.Since(start).Milliseconds(),
-			"ip":       r.RemoteAddr,
+			"time":     end.Format("2006-01-02 15:04:05"),
+			"method":   c.Request.Method,
+			"path":     path,
+			"query":    query,
+			"status":   c.Writer.Status(),
+			"duration": latency.Milliseconds(),
+			"ip":       c.ClientIP(),
+			"userAgent": c.Request.UserAgent(),
 		}).Info("request")
-	})
+	}
 }
 
 type responseRecorder struct {

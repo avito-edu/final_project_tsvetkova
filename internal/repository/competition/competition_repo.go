@@ -12,19 +12,19 @@ import (
 	"github.com/Masterminds/squirrel"
 )
 
-type PostgresCompetitionRepository struct {
+type CompetitionRepository struct {
 	db   *sql.DB
 	psql squirrel.StatementBuilderType
 }
 
-func NewPostgresCompetitionRepository(db *sql.DB) *PostgresCompetitionRepository {
-	return &PostgresCompetitionRepository{
+func NewCompetitionRepository(db *sql.DB) *CompetitionRepository {
+	return &CompetitionRepository{
 		db:   db,
 		psql: squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar),
 	}
 }
 
-func (r *PostgresCompetitionRepository) Create(comp *domain.Competition) error {
+func (r *CompetitionRepository) Create(comp *domain.Competition) error {
 	resultsJSON, _ := json.Marshal(comp.Results)
 
 	query, args, err := r.psql.
@@ -41,7 +41,7 @@ func (r *PostgresCompetitionRepository) Create(comp *domain.Competition) error {
 	return err
 }
 
-func (r *PostgresCompetitionRepository) GetByID(id int) (*domain.Competition, error) {
+func (r *CompetitionRepository) GetByID(id int) (*domain.Competition, error) {
 	query, args, err := r.psql.
 		Select("id", "name", "date", "organizer_id", "results").
 		From("competitions").
@@ -67,7 +67,7 @@ func (r *PostgresCompetitionRepository) GetByID(id int) (*domain.Competition, er
 	return &comp, nil
 }
 
-func (r *PostgresCompetitionRepository) GetAll() ([]*domain.Competition, error) {
+func (r *CompetitionRepository) GetAll() ([]*domain.Competition, error) {
 	query, args, err := r.psql.
 		Select("id", "name", "date", "organizer_id", "results").
 		From("competitions").
@@ -103,7 +103,7 @@ func (r *PostgresCompetitionRepository) GetAll() ([]*domain.Competition, error) 
 	return competitions, nil
 }
 
-func (r *PostgresCompetitionRepository) AddResult(compID int, result domain.Result) error {
+func (r *CompetitionRepository) AddResult(compID int, result domain.Result) error {
 	query, args, err := r.psql.
 		Select("results").
 		From("competitions").
@@ -141,7 +141,7 @@ func (r *PostgresCompetitionRepository) AddResult(compID int, result domain.Resu
 	return err
 }
 
-func (r *PostgresCompetitionRepository) GetAthleteResultsByDistance(athleteID int, distance string) ([]domain.Result, error) {
+func (r *CompetitionRepository) GetAthleteResultsByDistance(athleteID int, distance string) ([]domain.Result, error) {
 	query := `
 		SELECT jsonb_array_elements(results) as result
 		FROM competitions
@@ -178,7 +178,7 @@ func (r *PostgresCompetitionRepository) GetAthleteResultsByDistance(athleteID in
 	return results, nil
 }
 
-func (r *PostgresCompetitionRepository) GetAllResultsByDistance(distance string) ([]domain.Result, error) {
+func (r *CompetitionRepository) GetAllResultsByDistance(distance string) ([]domain.Result, error) {
 	query := `
 		SELECT jsonb_array_elements(results) as result
 		FROM competitions
@@ -216,7 +216,7 @@ func (r *PostgresCompetitionRepository) GetAllResultsByDistance(distance string)
 	return results, nil
 }
 
-func (r *PostgresCompetitionRepository) GetAthleteResultsByPeriod(ctx context.Context, athleteID int, startDate, endDate time.Time) ([]domain.Result, error) {
+func (r *CompetitionRepository) GetAthleteResultsByPeriod(ctx context.Context, athleteID int, startDate, endDate time.Time) ([]domain.Result, error) {
 	query := `
 		SELECT 
 			(r.elem->>'AthleteID')::int as athlete_id,

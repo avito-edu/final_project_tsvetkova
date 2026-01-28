@@ -8,19 +8,19 @@ import (
 	"github.com/Masterminds/squirrel"
 )
 
-type PostgresOrganizerRepository struct {
+type OrganizerRepository struct {
 	db   *sql.DB
 	psql squirrel.StatementBuilderType
 }
 
-func NewPostgresOrganizerRepository(db *sql.DB) *PostgresOrganizerRepository {
-	return &PostgresOrganizerRepository{
+func NewOrganizerRepository(db *sql.DB) *OrganizerRepository {
+	return &OrganizerRepository{
 		db:   db,
 		psql: squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar),
 	}
 }
 
-func (r *PostgresOrganizerRepository) Create(organizer *domain.Organizer) error {
+func (r *OrganizerRepository) Create(organizer *domain.Organizer) error {
 	query, args, err := r.psql.
 		Insert("organizers").
 		Columns("name", "email").
@@ -35,7 +35,7 @@ func (r *PostgresOrganizerRepository) Create(organizer *domain.Organizer) error 
 	return err
 }
 
-func (r *PostgresOrganizerRepository) GetByID(id int) (*domain.Organizer, error) {
+func (r *OrganizerRepository) GetByID(id int) (*domain.Organizer, error) {
 	query, args, err := r.psql.
 		Select("id", "name", "email").
 		From("organizers").
