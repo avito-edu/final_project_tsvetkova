@@ -1,0 +1,33 @@
+networks:
+  swims_network:
+    driver: bridge
+
+services:
+  server:
+    build:
+      context: ./
+      dockerfile: ./cmd/Dockerfile
+    container_name: server
+    env_file:
+      - ./.env
+    networks:
+      - swims_network
+    ports:
+      - "${SERVER_PORT}:${SERVER_PORT}"
+
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: swim_service
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    networks:
+      - swims_network
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations/migration.sql:/docker-entrypoint-initdb.d/init.sql
+
+volumes:
+  postgres_data:

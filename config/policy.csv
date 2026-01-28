@@ -1,0 +1,27 @@
+p, athlete, /athletes/get/*, GET
+p, athlete, /athletes/update/*, PATCH
+p, athlete, /competitions/get/*, GET
+p, athlete, /competitions/get-all, GET
+p, athlete, /analytics/get/*, POST
+
+p, organizer, /competitions/create, POST
+p, organizer, /competitions/get/*, GET
+p, organizer, /competitions/get-all, GET
+p, organizer, /competitions/add/*, POST
+p, organizer, /organizers/create, POST
+p, organizer, /organizers/get/*, GET
+
+p, admin, /athletes/create, POST
+p, admin, /athletes/get/*, GET
+p, admin, /athletes/update/*, PATCH
+p, admin, /competitions/create, POST
+p, admin, /competitions/get/*, GET
+p, admin, /competitions/get-all, GET
+p, admin, /competitions/add/*, POST
+p, admin, /organizers/create, POST
+p, admin, /organizers/get/*, GET
+p, admin, /analytics/get/*, POST
+p, admin, /register-special, POST
+
+g, coach, athlete
+g, head_organizer, organizer
